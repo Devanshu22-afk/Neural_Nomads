@@ -44,6 +44,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     private lateinit var chatViewModel: ChatViewModel
@@ -78,18 +79,12 @@ class MainActivity : ComponentActivity() {
 
         checkAndRequestAudioPermission()
 
+        // Register for incoming calls (Device 2 setup)
+        chatViewModel.registerForIncomingCalls(this, "http://192.168.10.11:3000/accessToken?identity=userB")
+
         setContent {
             AccessibilityApp(
-                messages = chatViewModel.messages.collectAsState().value,
-                inputText = chatViewModel.inputText.collectAsState().value,
-                isListening = chatViewModel.isListening.collectAsState().value,
-                selectedLanguageTag = chatViewModel.selectedLanguageTag.collectAsState().value,
-                onLanguageSelected = { chatViewModel.onLanguageSelected(it) },
-                targetLanguageTag = chatViewModel.targetLanguageTag.collectAsState().value,
-                onTargetLanguageSelected = { chatViewModel.onTargetLanguageSelected(it) },
-                onMicClicked = { chatViewModel.onMicClicked() },
-                onSpeakClicked = { chatViewModel.onSpeakClicked() },
-                onTextChanged = { chatViewModel.onTextChanged(it) }
+                chatViewModel = chatViewModel
             )
         }
     }
@@ -97,17 +92,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AccessibilityApp(
-    messages: List<ChatMessage>,
-    inputText: String,
-    isListening: Boolean,
-    selectedLanguageTag: String,
-    onLanguageSelected: (String) -> Unit,
-    targetLanguageTag: String,
-    onTargetLanguageSelected: (String) -> Unit,
-    onMicClicked: () -> Unit,
-    onSpeakClicked: () -> Unit,
-    onTextChanged: (String) -> Unit
+    chatViewModel: ChatViewModel
 ) {
+    val messages = chatViewModel.messages.collectAsState().value
+    val inputText = chatViewModel.inputText.collectAsState().value
+    val isListening = chatViewModel.isListening.collectAsState().value
+    val selectedLanguageTag = chatViewModel.selectedLanguageTag.collectAsState().value
+    val targetLanguageTag = chatViewModel.targetLanguageTag.collectAsState().value
+    val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Top,
@@ -119,7 +111,7 @@ fun AccessibilityApp(
         )
         LanguageSelector(
             selectedLanguageTag = selectedLanguageTag,
-            onLanguageSelected = onLanguageSelected,
+            onLanguageSelected = { chatViewModel.onLanguageSelected(it) },
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         )
         androidx.compose.material3.Text(
@@ -128,20 +120,27 @@ fun AccessibilityApp(
         )
         LanguageSelector(
             selectedLanguageTag = targetLanguageTag,
-            onLanguageSelected = onTargetLanguageSelected,
+            onLanguageSelected = { chatViewModel.onTargetLanguageSelected(it) },
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         )
-        ChatView(messages = messages, modifier = Modifier.weight(1f))
+        ChatView(
+            messages = messages,
+            modifier = Modifier.weight(1f),
+            context = context,
+            viewModel = chatViewModel,
+            to = "+17472525418",
+            tokenUrl = "http://192.168.10.11:3000/accessToken?identity=alice"
+        )
         Row(modifier = Modifier.padding(8.dp)) {
             MicButton(
-                onClick = onMicClicked,
+                onClick = { chatViewModel.onMicClicked() },
                 enabled = !isListening
             )
             Spacer(modifier = Modifier.width(8.dp))
             TextInputWithSpeakButton(
                 value = inputText,
-                onValueChange = onTextChanged,
-                onSpeak = onSpeakClicked,
+                onValueChange = { chatViewModel.onTextChanged(it) },
+                onSpeak = { chatViewModel.onSpeakClicked() },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -151,19 +150,6 @@ fun AccessibilityApp(
 @Preview(showBackground = true)
 @Composable
 fun AccessibilityAppPreview() {
-    AccessibilityApp(
-        messages = listOf(
-            ChatMessage("नमस्ते!", isUser = false),
-            ChatMessage("Hello!", isUser = true)
-        ),
-        inputText = "",
-        isListening = false,
-        selectedLanguageTag = "hi-IN",
-        onLanguageSelected = {},
-        targetLanguageTag = "en-US",
-        onTargetLanguageSelected = {},
-        onMicClicked = {},
-        onSpeakClicked = {},
-        onTextChanged = {}
-    )
+    // Preview is disabled because ChatViewModel requires real dependencies
+    // You can implement a fake ViewModel for preview if needed
 }
