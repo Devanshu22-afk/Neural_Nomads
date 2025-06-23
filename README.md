@@ -1,2 +1,2 @@
-# Neural_Nomads
-hi hello everyone this is our central india hackathon
+# _Neural_Nomads
+Hello everyone this is our central india hackathon project
